@@ -583,18 +583,34 @@
     }
 
     function onScanSuccess(decodedText) {
-      handleScannedId(decodedText.trim());
-    }
+    try {
+    // 1. Try parsing the scanned text as a JSON object
+    const data = JSON.parse(decodedText.trim());
 
-    function handleScannedId(id) {
-      const asset = assets.find(a => a.id === id);
-      if (asset) {
-        renderScannedCard(asset);
-      } else {
-        if (confirm(`No asset found with ID #${id}. Would you like to add it as a new asset?`)) {
-          openAddAssetModal(id);
-        }
+    // 2. Open the modal FIRST so all input fields exist in the DOM
+    openAddAssetModal();
+
+    // 3. Helper function to safely assign values without breaking if an ID is missing
+    const setFieldValue = (elementId, value) => {
+      const el = document.getElementById(elementId);
+      if (el && value !== undefined && value !== null) {
+        el.value = value;
       }
+    };
+
+    // 4. Safely populate fields (handles variations in JSON key naming)
+    setFieldValue("newAssetNumber", data["Asset Number"] || data["assetNumber"] || data["id"]);
+    setFieldValue("newItemName", data["Item Name"] || data["itemName"] || data["name"]);
+    setFieldValue("newCategory", data["Category"] || data["category"]);
+    setFieldValue("newStatus", data["Status"] || data["status"]);
+    setFieldValue("newOwner", data["Designated Owner"] || data["owner"]);
+    setFieldValue("newDescription", data["Description"] || data["description"]);
+    setFieldValue("newPicture", data["Picture"] || data["picture"]);
+
+    } catch (e) {
+    // Fallback: If the scanned QR is NOT JSON (e.g. just "16"), handle it as a plain ID string
+    handleScannedId(decodedText.trim());
+        }
     }
 
     function renderScannedCard(asset) {
