@@ -583,26 +583,19 @@
     }
 
     function onScanSuccess(decodedText) {
-    try {
-    // Attempt to parse scanned text as JSON
-    const data = JSON.parse(decodedText);
-    
-    // Auto-populate form inputs by matching keys
-    if (data["Asset Number"]) document.getElementById("newAssetNumber").value = data["Asset Number"];
-    if (data["Item Name"]) document.getElementById("newItemName").value = data["Item Name"];
-    if (data["Category"]) document.getElementById("newCategory").value = data["Category"];
-    if (data["Status"]) document.getElementById("newStatus").value = data["Status"];
-    if (data["Designated Owner"]) document.getElementById("newOwner").value = data["Designated Owner"];
-    if (data["Description"]) document.getElementById("newDescription").value = data["Description"];
-    if (data["Picture"]) document.getElementById("newPicture").value = data["Picture"];
-    
-    // Open modal pre-filled with scanned JSON data
-    openAddAssetModal();
-    } catch(e) {
-    // If scanned text is just a plain ID string (e.g. "16")
-    handleScannedId(decodedText.trim());
+      handleScannedId(decodedText.trim());
     }
-}
+
+    function handleScannedId(id) {
+      const asset = assets.find(a => a.id === id);
+      if (asset) {
+        renderScannedCard(asset);
+      } else {
+        if (confirm(`No asset found with ID #${id}. Would you like to add it as a new asset?`)) {
+          openAddAssetModal(id);
+        }
+      }
+    }
 
     function renderScannedCard(asset) {
       const isGood = asset.status.toUpperCase() === 'GOOD';
