@@ -587,13 +587,33 @@
       try {
         const scannedData = JSON.parse(scannedText);
         if (scannedData && typeof scannedData === 'object' && !Array.isArray(scannedData)) {
-          openAddAssetModal(scannedData);
+          const assetIdEntry = Object.entries(scannedData).find(([key]) =>
+            ['assetnumber', 'assetid', 'id'].includes(key.toLowerCase().replace(/[^a-z0-9]/g, ''))
+          );
+          const existingAsset = assetIdEntry && assets.find(asset => asset.id === String(assetIdEntry[1]));
+          if (existingAsset) {
+            renderScannedCard(existingAsset);
+          } else {
+            openAddAssetModal(scannedData);
+          }
           return;
         }
       } catch (err) {
         // Plain asset IDs are not JSON.
       }
       handleScannedId(scannedText);
+    }
+
+    function getAssetQrPayload(asset) {
+      return JSON.stringify({
+        "Asset Number": asset.id,
+        "Item Name": asset.name,
+        "Description": asset.description,
+        "Category": asset.category,
+        "Status": asset.status,
+        "Designated Owner": asset.owner,
+        "Picture": asset.picture
+      });
     }
 
     function handleScannedId(id) {
@@ -733,7 +753,7 @@
                 "Status": newAsset.status,
                 "Designated Owner": newAsset.owner,
                 "Picture": newAsset.picture,
-                "QR Code": `https://quickchart.io/qr?text=${newAsset.id}&size=150`
+                "QR Code": `https://quickchart.io/qr?text=${encodeURIComponent(getAssetQrPayload(newAsset))}&size=300`
               }
             })
           });
@@ -751,11 +771,13 @@
       const modalCanvas = document.getElementById("qrModalCanvas");
       modalCanvas.innerHTML = "";
       document.getElementById("qrModalSub").textContent = `Asset ID: #${assetId}`;
+      const asset = assets.find(item => item.id === assetId);
       
       new QRCode(modalCanvas, {
-        text: assetId,
-        width: 160,
-        height: 160
+        text: asset ? getAssetQrPayload(asset) : assetId,
+        width: 260,
+        height: 260,
+        correctLevel: QRCode.CorrectLevel.M
       });
 
       document.getElementById("qrModal").classList.remove("hidden");
