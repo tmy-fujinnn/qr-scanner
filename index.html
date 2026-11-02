@@ -583,35 +583,50 @@
     }
 
     function onScanSuccess(decodedText) {
-    try {
-    // 1. Try parsing the scanned text as a JSON object
-    const data = JSON.parse(decodedText.trim());
+  // 1. Immediately pause/stop the scanner so it doesn't keep firing
+  if (isScannerRunning && html5QrcodeScanner) {
+    toggleCameraScanner();
+  }
 
-    // 2. Open the modal FIRST so all input fields exist in the DOM
+  const rawText = decodedText.trim();
+
+  try {
+    // 2. Attempt to parse as JSON
+    const data = JSON.parse(rawText);
+
+    // 3. Open the modal first to reset/clear previous form state
     openAddAssetModal();
 
-    // 3. Helper function to safely assign values without breaking if an ID is missing
-    const setFieldValue = (elementId, value) => {
-      const el = document.getElementById(elementId);
-      if (el && value !== undefined && value !== null) {
-        el.value = value;
+    // 4. Safely set input values after modal reset
+    setTimeout(() => {
+      if (data["Asset Number"] || data["assetNumber"] || data["id"]) {
+        document.getElementById("newAssetNumber").value = data["Asset Number"] || data["assetNumber"] || data["id"];
       }
-    };
+      if (data["Item Name"] || data["itemName"] || data["name"]) {
+        document.getElementById("newItemName").value = data["Item Name"] || data["itemName"] || data["name"];
+      }
+      if (data["Category"] || data["category"]) {
+        document.getElementById("newCategory").value = data["Category"] || data["category"];
+      }
+      if (data["Status"] || data["status"]) {
+        document.getElementById("newStatus").value = data["Status"] || data["status"];
+      }
+      if (data["Designated Owner"] || data["owner"]) {
+        document.getElementById("newOwner").value = data["Designated Owner"] || data["owner"];
+      }
+      if (data["Description"] || data["description"]) {
+        document.getElementById("newDescription").value = data["Description"] || data["description"];
+      }
+      if (data["Picture"] || data["picture"]) {
+        document.getElementById("newPicture").value = data["Picture"] || data["picture"];
+      }
+    }, 50);
 
-    // 4. Safely populate fields (handles variations in JSON key naming)
-    setFieldValue("newAssetNumber", data["Asset Number"] || data["assetNumber"] || data["id"]);
-    setFieldValue("newItemName", data["Item Name"] || data["itemName"] || data["name"]);
-    setFieldValue("newCategory", data["Category"] || data["category"]);
-    setFieldValue("newStatus", data["Status"] || data["status"]);
-    setFieldValue("newOwner", data["Designated Owner"] || data["owner"]);
-    setFieldValue("newDescription", data["Description"] || data["description"]);
-    setFieldValue("newPicture", data["Picture"] || data["picture"]);
-
-    } catch (e) {
-    // Fallback: If the scanned QR is NOT JSON (e.g. just "16"), handle it as a plain ID string
-    handleScannedId(decodedText.trim());
-        }
-    }
+  } catch (e) {
+    // 5. Fallback for plain ID QR codes (e.g., "16")
+    handleScannedId(rawText);
+  }
+}
 
     function renderScannedCard(asset) {
       const isGood = asset.status.toUpperCase() === 'GOOD';
