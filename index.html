@@ -583,7 +583,17 @@
     }
 
     function onScanSuccess(decodedText) {
-      handleScannedId(decodedText.trim());
+      const scannedText = decodedText.trim();
+      try {
+        const scannedData = JSON.parse(scannedText);
+        if (scannedData && typeof scannedData === 'object' && !Array.isArray(scannedData)) {
+          openAddAssetModal(scannedData);
+          return;
+        }
+      } catch (err) {
+        // Plain asset IDs are not JSON.
+      }
+      handleScannedId(scannedText);
     }
 
     function handleScannedId(id) {
@@ -652,9 +662,35 @@
       if (sheetDbUrl) fetchSheetDbData();
     }
 
-    function openAddAssetModal(prefillId = '') {
+    function openAddAssetModal(prefill = '') {
       document.getElementById("addAssetForm").reset();
-      if (prefillId) document.getElementById("newAssetNumber").value = prefillId;
+      if (typeof prefill === 'string') {
+        if (prefill) document.getElementById("newAssetNumber").value = prefill;
+      } else if (prefill && typeof prefill === 'object') {
+        const fields = {
+          newAssetNumber: ['assetnumber', 'assetid', 'id'],
+          newItemName: ['itemname', 'name'],
+          newCategory: ['category'],
+          newStatus: ['status'],
+          newOwner: ['designatedowner', 'owner'],
+          newDescription: ['description'],
+          newPicture: ['picture', 'pictureurl', 'image', 'imageurl']
+        };
+        const normalizedData = Object.fromEntries(
+          Object.entries(prefill).map(([key, value]) => [key.toLowerCase().replace(/[^a-z0-9]/g, ''), value])
+        );
+
+        Object.entries(fields).forEach(([fieldId, aliases]) => {
+          const value = aliases.map(alias => normalizedData[alias]).find(item => item !== undefined && item !== null);
+          if (value !== undefined) {
+            const field = document.getElementById(fieldId);
+            const textValue = String(value);
+            if (fieldId !== 'newStatus' || ['good', 'bad'].includes(textValue.toLowerCase())) {
+              field.value = fieldId === 'newStatus' && textValue.toLowerCase() === 'bad' ? 'BAD' : textValue;
+            }
+          }
+        });
+      }
       document.getElementById("addAssetModal").classList.remove("hidden");
     }
     function closeAddAssetModal() {
